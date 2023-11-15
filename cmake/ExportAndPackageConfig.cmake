@@ -4,7 +4,7 @@
 #   occaConfigVersion.cmake, the version file associated with occaConfig.cmake
 
 # Install in subdirectory lib/cmake/PACKAGENAME, which is where cmake expects package config files
-set(PackageConfigInstallLocation lib/cmake/OCCA)
+set(PackageConfigInstallLocation ${CMAKE_INSTALL_LIBDIR}/cmake/OCCA)
 set(ExportNamespace "OCCA::")
 
 # Set the exportPackageDependencies variable, for use in configuring occaConfig.cmake.in

@@ -67,6 +67,7 @@ endif()
 
 include(SetCompilerFlags)
 include(CheckCXXCompilerFlag)
+include(GNUInstallDirs)
 
 check_cxx_compiler_flag("-fno-strict-aliasing" COMPILER_SUPPORTS_NO_STRICT_ALIASING)
 if(COMPILER_SUPPORTS_NO_STRICT_ALIASING)
@@ -88,12 +89,15 @@ endif()
 #=======================================
 
 #---[ libocca.so ]----------------------
-add_library(libocca SHARED)
+add_library(libocca)
+add_library(OCCA::occa ALIAS libocca)
 
 # Without this, CMake will create liblibocca.so
 set_target_properties(libocca PROPERTIES
   OUTPUT_NAME occa
-  LIBRARY_OUTPUT_DIRECTORY ${OCCA_BUILD_DIR}/lib)
+  LIBRARY_OUTPUT_DIRECTORY ${OCCA_BUILD_DIR}/lib
+  VERSION ${PROJECT_VERSION}
+  SOVERSION ${PROJECT_VERSION_MAJOR})
 
 # Find needed and requested packages
 find_package(Threads REQUIRED)
@@ -238,7 +242,7 @@ configure_file(
 
 install(
   FILES ${OCCA_BUILD_DIR}/include/occa/defines/compiledDefines.hpp
-  DESTINATION include/occa/defines)
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/occa/defines)
 
 # Find source files
 file(
@@ -249,12 +253,8 @@ if(ENABLE_FORTRAN)
   file(GLOB_RECURSE OCCA_SRC_f90
     RELATIVE ${OCCA_SOURCE_DIR} "src/*.f90")
 
-  install(CODE
-    "file(GLOB public-modules ${CMAKE_Fortran_MODULE_DIRECTORY}/*.mod)\n
-     file(INSTALL DESTINATION
-       ${CMAKE_INSTALL_PREFIX}/include
-       TYPE FILE
-       FILES \${public-modules})")
+  file(GLOB public-modules ${CMAKE_Fortran_MODULE_DIRECTORY}/*.mod)
+  install(FILES ${public-modules} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
   set_target_properties(libocca PROPERTIES
     LINKER_LANGUAGE C)
@@ -272,8 +272,19 @@ set(OCCA_SRC
 
 target_sources(libocca PRIVATE ${OCCA_SRC})
 
-install(TARGETS libocca EXPORT occaExport DESTINATION lib)
-install(DIRECTORY include/ DESTINATION include)
+# install(TARGETS libocca EXPORT occaExport DESTINATION lib)
+# install(DIRECTORY include/ DESTINATION include)
+install(
+  TARGETS libocca
+  EXPORT occaExport
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+install(
+  DIRECTORY include/
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
 
 if(ENABLE_TESTS)
   include(CTest)
@@ -289,10 +300,12 @@ add_subdirectory(bin)
 # Create a package config and associated files.
 include(ExportAndPackageConfig)
 
-install(CODE
-  "configure_file(
-    ${OCCA_SOURCE_DIR}/modulefiles/occa
-    ${CMAKE_INSTALL_PREFIX}/modulefiles/occa
-    @ONLY
-  )"
+configure_file(
+  ${OCCA_SOURCE_DIR}/modulefiles/occa.in
+  ${OCCA_BUILD_DIR}/modulefiles/occa
+  @ONLY
+)
+install(
+  FILES ${OCCA_BUILD_DIR}/modulefiles/occa
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/modulefiles/occa
 )
